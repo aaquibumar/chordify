@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chordify - Minimalist Chords & Guitar Tuner</title>
+    <!-- Tailwind CSS for clean, minimalist styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-zinc-50 text-zinc-900 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Navigation Header -->
+    <header class="border-b border-zinc-200 bg-white sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="showHome()">
+                <span class="text-xl font-bold tracking-tight text-zinc-900">Chordify</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button onclick="openTuner()" class="flex items-center space-x-2 text-sm font-medium bg-zinc-900 text-white px-3.5 py-2 rounded-lg hover:bg-zinc-800 transition shadow-sm">
+                    <i class="fa-solid fa-guitar"></i>
+                    <span>Tuner</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-5xl mx-auto px-4 py-8 flex-grow w-full">
+        <!-- Home View -->
+        <div id="homeView">
+            <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold tracking-tight mb-2">Guitar Chords & Tabs</h1>
+                    <p class="text-zinc-500">Clean chords, real-time transposition, and built-in tools for musicians.</p>
+                </div>
+                <!-- Search Bar -->
+                <div class="relative w-full md:w-72">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-zinc-400 text-sm"></i>
+                    <input type="text" id="searchInput" oninput="filterSongs()" placeholder="Search song or artist..." class="w-full bg-white border border-zinc-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-zinc-400 transition">
+                </div>
+            </div>
+
+            <!-- Song List Grid -->
+            <div id="songGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </div>
+
+        <!-- Song Reader View (Hidden by default) -->
+        <div id="readerView" class="hidden">
+            <div class="mb-6 flex items-center justify-between">
+                <button onclick="showHome()" class="text-sm font-medium text-zinc-500 hover:text-zinc-900 flex items-center space-x-2 transition">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Back to songs</span>
+                </button>
+                
+                <!-- Tools bar: Transpose & Font -->
+                <div class="flex items-center space-x-3 bg-white border border-zinc-200 px-3 py-1.5 rounded-xl shadow-sm text-sm">
+                    <span class="text-zinc-400 text-xs uppercase font-semibold">Transpose:</span>
+                    <button onclick="changeTranspose(-1)" class="w-7 h-7 flex items-center justify-center rounded hover:bg-zinc-100 font-bold">-</button>
+                    <span id="transposeDisplay" class="font-mono font-bold w-6 text-center">0</span>
+                    <button onclick="changeTranspose(1)" class="w-7 h-7 flex items-center justify-center rounded hover:bg-zinc-100 font-bold">+</button>
+                </div>
+            </div>
+
+            <div class="bg-white border border-zinc-200 rounded-2xl p-6 md:p-10 shadow-sm">
+                <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-zinc-100 mb-6 gap-4">
+                    <div>
+                        <h2 id="readerTitle" class="text-2xl font-bold text-zinc-900 mb-1">Song Title</h2>
+                        <p id="readerArtist" class="text-sm font-medium text-zinc-500">Artist Name</p>
+                    </div>
+                    <div class="flex flex-wrap gap-3 text-xs font-medium text-zinc-600">
+                        <div class="bg-zinc-100 px-3 py-1.5 rounded-lg">Capo: <span id="readerCapo" class="font-bold text-zinc-900">None</span></div>
+                        <div class="bg-zinc-100 px-3 py-1.5 rounded-lg">Strumming: <span id="readerStrumming" class="font-bold text-zinc-900">D D U UD</span></div>
+                    </div>
+                </div>
+
+                <!-- Chords Content Body -->
+                <div id="readerContent" class="font-mono text-sm leading-loose whitespace-pre-wrap text-zinc-800">
+                    <!-- Song lyrics & chords rendered here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-zinc-200 py-6 text-center text-xs text-zinc-400 bg-white">
+        &copy; 2026 Chordify. Built for guitarists.
+    </footer>
+
+    <!-- Tuner Modal -->
+    <div id="tunerModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-zinc-100 relative">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold">Guitar Tuner</h3>
+                <button onclick="closeTuner()" class="text-zinc-400 hover:text-zinc-600 text-xl font-bold">&times;</button>
+            </div>
+
+            <!-- Target Note & Status -->
+            <div class="text-center mb-6">
+                <div id="targetNoteDisplay" class="text-5xl font-extrabold text-zinc-900 mb-1">E</div>
+                <div id="tunerStatus" class="text-sm font-medium text-zinc-500">Click Start Tuner to begin</div>
+            </div>
+
+            <!-- Visual Needle / Meter -->
+            <div class="relative bg-zinc-100 h-10 rounded-xl mb-6 overflow-hidden flex items-center justify-center">
+                <div class="absolute inset-0 flex justify-center items-center">
+                    <div class="w-0.5 h-full bg-zinc-300"></div>
+                </div>
+                <!-- Moving Needle -->
+                <div id="tunerNeedle" class="absolute w-1.5 h-8 bg-zinc-900 rounded-full transition-all duration-75" style="left: 50%;"></div>
+            </div>
+
+            <!-- Frequency Readout -->
+            <div class="text-center text-xs text-zinc-400 mb-6">
+                Frequency: <span id="frequencyDisplay" class="font-mono text-zinc-700 font-bold">0.0</span> Hz
+            </div>
+
+            <!-- Standard String Buttons -->
+            <div class="grid grid-cols-6 gap-2 mb-6">
+                <button onclick="setTargetNote('E2', 82.41)" class="py-2 border border-zinc-200 rounded-lg text-xs font-bold hover:bg-zinc-50 transition">E₂</button>
+                <button onclick="setTargetNote('A2', 110.00)" class="py-2 border border-zinc-200 rounded-lg text-xs font-bold hover:bg-zinc-50 transition">A₂</button>
+                <button onclick="setTargetNote('D3', 146.83)" class="py-2 border border-zinc-200 rounded-lg text-xs font-bold hover:bg-zinc-50 transition">D₃</button>
+                <button onclick="setTargetNote('G3', 196.00)" class="py-2 border border-zinc-200 rounded-lg text-xs font-bold hover:bg-zinc-50 transition">G₃</button>
+                <button onclick="setTargetNote('B3', 246.94)" class="py-2 border border-zinc-200 rounded-lg text-xs font-bold hover:bg-zinc-50 transition">B₃</button>
+                <button onclick="setTargetNote('E4', 329.63)" class="py-2 border border-zinc-200 rounded-lg text-xs font-bold hover:bg-zinc-50 transition">E₄</button>
+            </div>
+
+            <!-- Controls -->
+            <button id="tunerToggleBtn" onclick="toggleTuner()" class="w-full bg-zinc-900 text-white py-3 rounded-xl font-medium hover:bg-zinc-800 transition shadow-sm">
+                Start Tuner
+            </button>
+        </div>
+    </div>
+
+    <!-- Chord Diagram Modal -->
+    <div id="chordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4" onclick="closeChordModal(event)">
+        <div class="bg-white rounded-2xl max-w-xs w-full p-6 shadow-xl border border-zinc-100 text-center relative" onclick="event.stopPropagation()">
+            <button onclick="closeChordModalDirect()" class="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 text-xl font-bold">&times;</button>
+            <h3 id="modalChordTitle" class="text-xl font-bold mb-4 text-zinc-900">C Major</h3>
+            <div id="chordSvgContainer" class="flex justify-center mb-4"></div>
+            <p class="text-xs text-zinc-400">Standard Finger Placement</p>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Sample Song Database
+        const songs = [
+            {
+                id: 1,
+                title: "Perfect",
+                artist: "Ed Sheeran",
+                capo: "1st Fret",
+                strumpattern: "D - D - UDUD",
+                chords: ["G", "Em", "C", "D"],
+                content: `[G]I found a [Em]love for me
+[C]Darling, just dive right [D]in
+[G]And follow my [Em]lead
+[C]Well, I found a girl, beau[D]tiful and sweet
+[C]I never knew you were the [D]someone waiting for [G]me`
+            },
+            {
+                id: 2,
+                title: "Tum Hi Ho",
+                artist: "Arijit Singh",
+                capo: "3rd Fret",
+                strumpattern: "D - DDU - DUD",
+                chords: ["Am", "F", "G", "C"],
+                content: `[Am]Hum tere bin ab reh [F]nahi sakte
+[G]Tere bina kya wajood [C]mera
+[Am]Tujh se hi raabta [F]hai mera
+[G]Tujh se hi wajood [C]mera`
+            },
+            {
+                id: 3,
+                title: "Wonderwall",
+                artist: "Oasis",
+                capo: "2nd Fret",
+                strumpattern: "D D UDUD DU",
+                chords: ["Em7", "G", "Dsus4", "A7sus4"],
+                content: `[Em7]Today is [G]gonna be the day that they're [Dsus4]gonna throw it back to [A7sus4]you
+[Em7]By now you [G]should've somehow [Dsus4]realized what you gotta [A7sus4]do`
+            }
+        ];
+
+        // Render Home Song Grid
+        function renderSongs(list) {
+            const grid = document.getElementById('songGrid');
+            grid.innerHTML = '';
+            list.forEach(song => {
+                const card = document.createElement('div');
+                card.className = "bg-white border border-zinc-200 rounded-2xl p-5 hover:border-zinc-400 transition cursor-pointer shadow-sm flex flex-col justify-between";
+                card.onclick = () => openSong(song.id);
+                
+                let chordBadges = song.chords.map(c => `<span class="bg-zinc-100 text-zinc-700 px-2.5 py-1 rounded-md text-xs font-mono font-bold">${c}</span>`).join(' ');
+                
+                card.innerHTML = `
+                    <div>
+                        <h3 class="text-lg font-bold text-zinc-900 mb-1">${song.title}</h3>
+                        <p class="text-sm text-zinc-500 mb-4">${song.artist}</p>
+                    </div>
+                    <div class="flex items-center justify-between pt-4 border-t border-zinc-100">
+                        <div class="flex gap-1.5">${chordBadges}</div>
+                        <span class="text-xs text-zinc-400 font-medium">Capo: ${song.capo}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterSongs() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = songs.filter(s => s.title.toLowerCase().includes(query) || s.artist.toLowerCase().includes(query));
+            renderSongs(filtered);
+        }
+
+        let currentSong = null;
+        let currentTransposeOffset = 0;
+
+        function openSong(id) {
+            currentSong = songs.find(s => s.id === id);
+            currentTransposeOffset = 0;
+            document.getElementById('transposeDisplay').innerText = '0';
+            
+            document.getElementById('readerTitle').innerText = currentSong.title;
+            document.getElementById('readerArtist').innerText = currentSong.artist;
+            document.getElementById('readerCapo').innerText = currentSong.capo;
+            document.getElementById('readerStrumming').innerText = currentSong.strumpattern;
+            
+            renderFormattedContent(currentSong.content);
+
+            document.getElementById('homeView').classList.add('hidden');
+            document.getElementById('readerView').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showHome() {
+            document.getElementById('readerView').classList.add('hidden');
+            document.getElementById('homeView').classList.remove('hidden');
+        }
+
+        // Parse brackets [C] into interactive chord tags
+        function renderFormattedContent(text) {
+            // Replace [Chord] with interactive clickable spans
+            let parsed = text.replace(/\[([^\]]+)\]/g, (match, chord) => {
+                return `<span class="text-indigo-600 font-bold cursor-pointer hover:underline song-chord-tag bg-indigo-50 px-1 rounded mx-0.5" onclick="showChordDiagram('${chord}')" data-original="${chord}">${chord}</span>`;
+            });
+            document.getElementById('readerContent').innerHTML = parsed;
+        }
+
+        // Transposition Logic
+        const semitones = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const flatToSharp = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
+
+        function transposeChord(chord, amount) {
+            let root = chord.substring(0, 2);
+            if (flatToSharp[root]) {
+                root = flatToSharp[root];
+            } else {
+                root = chord.substring(0, 1);
+            }
+            let suffix = chord.substring(root.length);
+            let index = semitones.indexOf(root);
+            if (index === -1) return chord;
+            let newIndex = (index + amount + 12) % 12;
+            return semitones[newIndex] + suffix;
+        }
+
+        function changeTranspose(amount) {
+            currentTransposeOffset += amount;
+            document.getElementById('transposeDisplay').innerText = (currentTransposeOffset > 0 ? '+' : '') + currentTransposeOffset;
+            
+            const chordElements = document.querySelectorAll('.song-chord-tag');
+            chordElements.forEach(el => {
+                let original = el.getAttribute('data-original');
+                el.innerText = transposeChord(original, currentTransposeOffset);
+            });
+        }
+
+        // Chord Fretboard Data & Modal Renderer
+        const chordDatabase = {
+            'C':  { frets: [-1, 3, 2, 0, 1, 0], fingers: ['', '3', '2', '', '1', ''] },
+            'Am': { frets: [-1, 0, 2, 2, 1, 0], fingers: ['', '', '2', '3', '1', ''] },
+            'G':  { frets: [3, 2, 0, 0, 0, 3], fingers: ['2', '1', '', '', '', '3'] },
+            'F':  { frets: [1, 3, 3, 2, 1, 1], fingers: ['1', '3', '4', '2', '1', '1'] },
+            'D':  { frets: [-1, -1, 0, 2, 3, 2], fingers: ['', '', '', '1', '3', '2'] },
+            'Dm': { frets: [-1, -1, 0, 2, 3, 1], fingers: ['', '', '', '2', '3', '1'] },
+            'Em': { frets: [0, 2, 2, 0, 0, 0], fingers: ['', '2', '3', '', '', ''] },
+            'E':  { frets: [0, 2, 2, 1, 0, 0], fingers: ['', '2', '3', '1', '', ''] },
+            'A':  { frets: [-1, 0, 2, 2, 2, 0], fingers: ['', '', '1', '2', '3', ''] },
+            'Em7': { frets: [0, 2, 2, 0, 3, 0], fingers: ['', '2', '3', '', '4', ''] },
+            'Dsus4': { frets: [-1, -1, 0, 2, 3, 3], fingers: ['', '', '', '1', '3', '4'] },
+            'A7sus4': { frets: [-1, 0, 2, 0, 3, 0], fingers: ['', '', '2', '', '4', ''] }
+        };
+
+        function showChordDiagram(chordName) {
+            let base = chordName.replace('7', '').replace('sus4', '');
+            let data = chordDatabase[chordName] || chordDatabase[base] || chordDatabase['C'];
+
+            document.getElementById('modalChordTitle').innerText = chordName + ' Chord';
+            
+            let svgHTML = `
+                <svg width="140" height="180" viewBox="0 0 140 180" class="mx-auto">
+                    <rect x="20" y="30" width="100" height="4" fill="#18181b" />
+                    <line x1="20" y1="60" x2="120" y2="60" stroke="#d4d4d8" stroke-width="2"/>
+                    <line x1="20" y1="90" x2="120" y2="90" stroke="#d4d4d8" stroke-width="2"/>
+                    <line x1="20" y1="120" x2="120" y2="120" stroke="#d4d4d8" stroke-width="2"/>
+                    <line x1="20" y1="150" x2="120" y2="150" stroke="#d4d4d8" stroke-width="2"/>
+                    <line x1="20" y1="30" x2="20" y2="150" stroke="#a1a1aa" stroke-width="1.5"/>
+                    <line x1="40" y1="30" x2="40" y2="150" stroke="#a1a1aa" stroke-width="1.5"/>
+                    <line x1="60" y1="30" x2="60" y2="150" stroke="#a1a1aa" stroke-width="1.5"/>
+                    <line x1="80" y1="30" x2="80" y2="150" stroke="#a1a1aa" stroke-width="1.5"/>
+                    <line x1="100" y1="30" x2="100" y2="150" stroke="#a1a1aa" stroke-width="1.5"/>
+                    <line x1="120" y1="30" x2="120" y2="150" stroke="#a1a1aa" stroke-width="1.5"/>
+            `;
+
+            data.frets.forEach((fret, idx) => {
+                let x = 20 + (idx * 20);
+                if (fret === -1) {
+                    svgHTML += `<text x="${x}" y="20" font-size="10" text-anchor="middle" fill="#71717a">×</text>`;
+                } else if (fret === 0) {
+                    svgHTML += `<circle cx="${x}" cy="20" r="3.5" fill="none" stroke="#71717a" stroke-width="1.5"/>`;
+                } else {
+                    let y = 30 + (fret * 30) - 15;
+                    svgHTML += `
+                        <circle cx="${x}" cy="${y}" r="7" fill="#18181b"/>
+                        <text x="${x}" y="${y + 3.5}" font-size="9" text-anchor="middle" fill="#ffffff">${data.fingers[idx] || ''}</text>
+                    `;
+                }
+            });
+
+            svgHTML += `</svg>`;
+            document.getElementById('chordSvgContainer').innerHTML = svgHTML;
+            document.getElementById('chordModal').classList.remove('hidden');
+            document.getElementById('chordModal').classList.add('flex');
+        }
+
+        function closeChordModal(e) {
+            document.getElementById('chordModal').classList.remove('flex');
+            document.getElementById('chordModal').classList.add('hidden');
+        }
+
+        function closeChordModalDirect() {
+            document.getElementById('chordModal').classList.remove('flex');
+            document.getElementById('chordModal').classList.add('hidden');
+        }
+
+        // Guitar Tuner Logic
+        let audioContext = null;
+        let analyser = null;
+        let mediaStream = null;
+        let isTunerRunning = false;
+        let targetFreq = 82.41;
+
+        function openTuner() {
+            document.getElementById('tunerModal').classList.remove('hidden');
+            document.getElementById('tunerModal').classList.add('flex');
+        }
+
+        function closeTuner() {
+            document.getElementById('tunerModal').classList.remove('flex');
+            document.getElementById('tunerModal').classList.add('hidden');
+            stopTuner();
+        }
+
+        function setTargetNote(note, freq) {
+            targetFreq = freq;
+            document.getElementById('targetNoteDisplay').innerText = note.substring(0, 1);
+        }
+
+        async function toggleTuner() {
+            if (isTunerRunning) {
+                stopTuner();
+            } else {
+                await startTuner();
+            }
+        }
+
+        async function startTuner() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                source.connect(analyser);
+
+                isTunerRunning = true;
+                const btn = document.getElementById('tunerToggleBtn');
+                btn.innerText = 'Stop Tuner';
+                btn.classList.replace('bg-zinc-900', 'bg-red-600');
+                
+                updatePitch();
+            } catch (err) {
+                alert('Microphone access is required for the tuner.');
+            }
+        }
+
+        function stopTuner() {
+            isTunerRunning = false;
+            if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+            if (audioContext && audioContext.state !== 'closed') audioContext.close();
+            const btn = document.getElementById('tunerToggleBtn');
+            btn.innerText = 'Start Tuner';
+            btn.classList.replace('bg-red-600', 'bg-zinc-900');
+            document.getElementById('tunerStatus').innerText = 'Tuner paused';
+        }
+
+        function autoCorrelate(buf, sampleRate) {
+            let SIZE = buf.length;
+            let sum = 0;
+            for (let i = 0; i < SIZE; i++) sum += buf[i] * buf[i];
+            let root = Math.sqrt(sum / SIZE);
+            if (root < 0.01) return -1;
+
+            let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+            for (let i = 0; i < SIZE / 2; i++) { if (Math.abs(buf[i]) < thres) { r1 = i; break; } }
+            for (let i = 1; i < SIZE / 2; i++) { if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; } }
+
+            buf = buf.slice(r1, r2);
+            SIZE = buf.length;
+            let c = new Array(SIZE).fill(0);
+            for (let i = 0; i < SIZE; i++) {
+                for (let j = 0; j < SIZE - i; j++) { c[i] += buf[j] * buf[j + i]; }
+            }
+            let d = 0;
+            while (c[d] > c[d + 1]) d++;
+            let maxval = -1, maxpos = -1;
+            for (let i = d; i < SIZE; i++) {
+                if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+            }
+            return sampleRate / maxpos;
+        }
+
+        function updatePitch() {
+            if (!isTunerRunning) return;
+            let buf = new Float32Array(2048);
+            analyser.getFloatTimeDomainData(buf);
+            let freq = autoCorrelate(buf, audioContext.sampleRate);
+
+            if (freq !== -1) {
+                document.getElementById('frequencyDisplay').innerText = freq.toFixed(1);
+                let diff = freq - targetFreq;
+                let percentage = Math.max(-50, Math.min(50, diff * 2));
+                document.getElementById('tunerNeedle').style.left = `calc(50% + ${percentage}%)`;
+
+                const statusEl = document.getElementById('tunerStatus');
+                if (Math.abs(diff) < 1.5) {
+                    statusEl.innerText = 'In Tune! ✓';
+                    statusEl.className = 'text-sm font-medium text-emerald-600 font-bold';
+                } else if (diff < 0) {
+                    statusEl.innerText = 'Flat (Tune Up)';
+                    statusEl.className = 'text-sm font-medium text-amber-600';
+                } else {
+                    statusEl.innerText = 'Sharp (Tune Down)';
+                    statusEl.className = 'text-sm font-medium text-blue-600';
+                }
+            }
+            requestAnimationFrame(updatePitch);
+        }
+
+        // Initial render on load
+        renderSongs(songs);
+    </script>
+</body>
+</html>
